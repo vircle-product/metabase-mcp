@@ -790,6 +790,58 @@ async def create_collection(
         await ctx.error(error_msg)
         raise ToolError(error_msg) from e
 
+@mcp.tool()
+async def get_dashboard_cards(ctx: Context, dashboard_id: int) -> dict:
+    """
+    Get all cards/questions attached to a Metabase dashboard.
+
+    Args:
+        dashboard_id: The ID of the dashboard.
+
+    Returns:
+        List of cards with their id, name, and description.
+    """
+    try:
+        await ctx.info(f"Fetching cards for dashboard {dashboard_id}")
+        result = await metabase_client.request("GET", f"/dashboard/{dashboard_id}")
+        cards = result.get("dashcards", [])
+        return [
+            {
+                "card_id": c["card"]["id"],
+                "name": c["card"]["name"],
+                "description": c["card"].get("description"),
+            }
+            for c in cards
+            if c.get("card")
+        ]
+    except Exception as e:
+        error_msg = f"Error fetching dashboard cards: {e}"
+        await ctx.error(error_msg)
+        raise ToolError(error_msg) from e
+
+
+@mcp.tool()
+async def update_card_description(ctx: Context, card_id: int, description: str) -> dict:
+    """
+    Update the description of a Metabase card/question.
+
+    Args:
+        card_id: The ID of the card to update.
+        description: The new description text.
+
+    Returns:
+        Updated card object.
+    """
+    try:
+        await ctx.info(f"Updating description for card {card_id}")
+        result = await metabase_client.request("PUT", f"/card/{card_id}", json={"description": description})
+        await ctx.info(f"Successfully updated card {card_id}")
+        return result
+    except Exception as e:
+        error_msg = f"Error updating card description: {e}"
+        await ctx.error(error_msg)
+        raise ToolError(error_msg) from e
+
 
 def main():
     """
